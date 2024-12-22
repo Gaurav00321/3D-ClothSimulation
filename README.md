@@ -22,7 +22,7 @@ Before running the project, ensure you have the following:
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/cloth-simulation.git
+   git clone https://github.com/gaurav00321/cloth-simulation.git
    cd cloth-simulation
 2. Open the index.html file in any modern web browser.
 
