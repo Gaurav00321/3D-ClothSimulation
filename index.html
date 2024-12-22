@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Cloth Simulation</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: black; /* Set black background */
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // Scene, Camera, Renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 0, 50); // Adjust to center vertically
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Lighting
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(0, 100, 50).normalize();
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x404040));
+
+      // Cloth Dimensions
+      const clothWidth = 50;
+      const clothHeight = 20; // Increase height for vertical hanging
+      const segmentsX = 20;
+      const segmentsY = 40;
+
+      // Cloth Geometry and Material
+      const clothGeometry = new THREE.PlaneGeometry(
+        clothWidth,
+        clothHeight,
+        segmentsX,
+        segmentsY
+      );
+      clothGeometry.rotateY(-Math.PI / 2); // Rotate for vertical hanging
+
+      const clothMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff, // White color
+        side: THREE.DoubleSide,
+        wireframe: true, // Net-like appearance
+      });
+
+      const cloth = new THREE.Mesh(clothGeometry, clothMaterial);
+      cloth.position.set(0, 0, 0); // Center vertically
+      scene.add(cloth);
+
+      // Cloth Physics Simulation: Hanging Particles
+      const particles = [];
+      const fixedParticles = new Set();
+      for (let y = 0; y <= segmentsY; y++) {
+        for (let x = 0; x <= segmentsX; x++) {
+          const position = new THREE.Vector3(
+            (x / segmentsX - 0.5) * clothWidth,
+            (y / segmentsY - 0.5) * clothHeight,
+            0
+          );
+          particles.push({
+            position: position.clone(),
+            previous: position.clone(),
+            acceleration: new THREE.Vector3(),
+            isFixed: y === segmentsY, // Fix the top edge
+          });
+          if (y === segmentsY) fixedParticles.add(particles.length - 1);
+        }
+      }
+
+      // Update Cloth Vertices
+      function updateCloth(deltaTime) {
+        const gravity = new THREE.Vector3(0, -9.8, 0);
+
+        for (let i = 0; i < particles.length; i++) {
+          const particle = particles[i];
+          if (particle.isFixed) continue;
+
+          // Verlet Integration
+          const tempPosition = particle.position.clone();
+          particle.position.add(
+            particle.position
+              .clone()
+              .sub(particle.previous)
+              .multiplyScalar(0.99) // Damping
+          );
+          particle.position.add(
+            particle.acceleration.clone().multiplyScalar(deltaTime * deltaTime)
+          );
+          particle.previous.copy(tempPosition);
+
+          // Apply Gravity
+          particle.acceleration.copy(gravity);
+        }
+
+        // Update Cloth Vertices
+        for (let i = 0; i < particles.length; i++) {
+          clothGeometry.attributes.position.setXYZ(
+            i,
+            particles[i].position.x,
+            particles[i].position.y,
+            particles[i].position.z
+          );
+        }
+        clothGeometry.attributes.position.needsUpdate = true;
+      }
+
+      // Mouse Interaction for Magnification
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      window.addEventListener("mousemove", (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(cloth);
+        if (intersects.length > 0) {
+          const point = intersects[0].point;
+          for (const particle of particles) {
+            if (particle.position.distanceTo(point) < 1) {
+              particle.acceleration.add(
+                particle.position
+                  .clone()
+                  .sub(point)
+                  .normalize()
+                  .multiplyScalar(10)
+              );
+            }
+          }
+        }
+      });
+
+      // Animation Loop
+      const clock = new THREE.Clock();
+      function animate() {
+        const deltaTime = clock.getDelta();
+        updateCloth(deltaTime);
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+
+      // Orbit Controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Handle Window Resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
