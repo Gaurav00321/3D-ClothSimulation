@@ -19,7 +19,7 @@ Before running the project, ensure you have the following:
 
 ## Getting Started
 
-- **Online**: Visit [3D Cloth Simulation](https://gaurav00321.github.io/ClothSimulation/) to view it live.
+- **Online**: Visit [3D Cloth Simulation](https://gaurav00321.github.io/3D-ClothSimulation/) to view it live.
 
 ## Local Setup:  
 
