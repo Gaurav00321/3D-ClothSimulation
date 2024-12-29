@@ -19,6 +19,10 @@ Before running the project, ensure you have the following:
 
 ## Getting Started
 
+- **Online**: Visit [3D Cloth Simulation](https://gaurav00321.github.io/ClothSimulation/) to view it live.
+
+## Local Setup:  
+
 ### Installation
 1. Clone the repository:
    ```bash
